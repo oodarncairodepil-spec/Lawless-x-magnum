@@ -25,13 +25,13 @@ Create a `.env` file in the root directory:
 
 ```env
 # Allaccess SSO Configuration
-ENV=Development
-SSO_NAME=sso-magnum-lawless
+ENV=Production
+SSO_NAME=sso-magnum-lawless-prd
 SSO_SECRET_KEY=your_secret_key_here
 SSO_CLIENT_ID=your_client_id_here
 SSO_CLIENT_KEY=your_client_key_here
 SSO_CLIENT_NAME=magnum_lawless_18022026
-SSO_REDIRECT_URL=https://dev.magnum.id/
+SSO_REDIRECT_URL=https://magnum.id/
 SSO_PLATFORM=magnum x lawless
 SSO_DETAIL_PAGE=https://lawlessjakarta.com/
 
@@ -43,7 +43,7 @@ JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 
 # Server Configuration
 PORT=3001
-NODE_ENV=development
+NODE_ENV=production
 ```
 
 ### 3. Run Development Server
@@ -63,26 +63,29 @@ This will start:
 1. User visits website → Age verification popup appears
 2. User passes age verification (21+)
 3. Frontend requests login URL from backend
-4. Backend generates Allaccess token and returns login URL
-5. User redirected to Allaccess SSO login
-6. After login, Allaccess redirects back with `auth_data` or `code`
-7. Backend validates `auth_data` using `/api/auth/check-data`
-8. Backend creates secure JWT token
-9. User redirected to `lawlessjakarta.com/?token=xxxxx`
-10. External domain validates token via `/api/auth/verify-token`
+4. Backend calls `/api/token/get` to get token_code
+5. Backend calls `/api/auth/request-url` with token_code to get login URL
+6. User redirected to Allaccess SSO login
+7. After login, Allaccess redirects back with `auth_data` or `code`
+8. Backend validates `auth_data` using `/api/auth/check-data`
+9. Backend creates secure JWT token
+10. User redirected to `lawlessjakarta.com/?token=xxxxx`
+11. External domain validates token via `/api/auth/verify-token`
 
 ### Security Features
 
 - ✅ All secrets stored in backend environment variables
 - ✅ JWT tokens with expiration (15 minutes)
-- ✅ HMAC signature for Allaccess API calls
+- ✅ Token-based authentication with Allaccess API
 - ✅ CORS protection
 - ✅ No sensitive data in frontend
 
 ## API Endpoints
 
 ### `GET /api/auth/login-url`
-Generates Allaccess SSO login URL.
+Generates Allaccess SSO login URL using correct API flow:
+1. POST `/api/token/get` → get token_code
+2. POST `/api/auth/request-url` → get login URL
 
 **Response:**
 ```json
@@ -144,4 +147,4 @@ Verifies redirect token (for external domain).
 
 - The Allaccess API endpoints may vary. Adjust the API calls in `server.js` based on actual Allaccess API documentation.
 - Token validation endpoint should be accessible by `lawlessjakarta.com` backend for cross-domain verification.
-
+- `redirect_url` and `platform` must EXACTLY match what's registered in Allaccess CMS (case-sensitive, trailing slash matters).
